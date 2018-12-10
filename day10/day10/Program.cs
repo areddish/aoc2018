@@ -7,8 +7,8 @@ namespace day10
 {
     class Program
     {
-        private const string file = @"c:\src\aoc2018\day10\test.txt";
-        //private const string file = @"c:\src\aoc2018\day10\input.txt";
+        //private const string file = @"c:\src\aoc2018\day10\test.txt";
+        private const string file = @"c:\src\aoc2018\day10\input.txt";
 
         private const string bmpFileName = "solution.bmp";
 
@@ -34,6 +34,33 @@ namespace day10
             }
 
             bp.Save(bmpFileName);
+        }
+
+        static void Print(List<int> xs, List<int> ys)
+        {
+            var offsetx = Math.Abs(xs.Min());
+            var offsety = Math.Abs(ys.Min());
+
+            var mx = xs.Max();
+            var my = ys.Max();
+
+            var width = mx - offsetx  + 1;
+            var height = my - offsety + 1;
+
+            var buffer = new char[width * height];
+            for (var j = 0; j < height; j++)
+                for (var i = 0; i < width; i++)
+                    buffer[i + j * width] = '.';
+
+            for (var i = 0; i < xs.Count; i++)
+                buffer[xs[i]-offsetx + (ys[i]-offsety)* width] = '#';
+
+            for (var j = 0; j < height; j++)
+            {
+                for (var i = 0; i < width; i++)
+                    Console.Write(buffer[i + j * width]);
+                Console.WriteLine();
+            }
         }
 
         static void Main(string[] args)
@@ -110,6 +137,8 @@ namespace day10
             }
 
             Console.WriteLine("Part 1 solution in bmp file: solution.bmp");
+            Console.WriteLine("Or:");
+            Print(xs, ys);
             Console.WriteLine(string.Format("Part 2 took {0} seconds.", seconds - 1));
         }
     }
