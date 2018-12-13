@@ -18,42 +18,20 @@
             {
                 return;
             }
-
-            if (move == Move.Left)
+            else if (move == Move.Right)
             {
-                switch (this.Facing)
-                {
-                    case Direction.Right:
-                        Facing = Direction.Up;
-                        break;
-                    case Direction.Left:
-                        Facing = Direction.Down;
-                        break;
-                    case Direction.Down:
-                        Facing = Direction.Right;
-                        break;
-                    case Direction.Up:
-                        Facing = Direction.Left;
-                        break;
-                }
+                int val = (int)Facing;
+                val++;
+                val %= (int)Direction.LIMIT;
+                Facing = (Direction)val;
             }
             else
             {
-                switch (this.Facing)
-                {
-                    case Direction.Right:
-                        Facing = Direction.Down;
-                        break;
-                    case Direction.Left:
-                        Facing = Direction.Up;
-                        break;
-                    case Direction.Down:
-                        Facing = Direction.Left;
-                        break;
-                    case Direction.Up:
-                        Facing = Direction.Right;
-                        break;
-                }
+                int val = (int)Facing;
+                val--;
+                if (val < 0)
+                    val = (int)Direction.LIMIT - 1;
+                Facing = (Direction)val;
             }
         }
 

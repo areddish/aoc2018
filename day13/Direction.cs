@@ -1,10 +1,12 @@
 ﻿namespace day13
 {
+    // Organized such that +1 = rotation right, -1 = rotate left
     public enum Direction : int
     {
         Up = 0,
-        Down,
         Right,
-        Left
+        Down,
+        Left,
+        LIMIT
     }
 }
