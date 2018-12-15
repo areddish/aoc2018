@@ -44,10 +44,11 @@ class Mob:
         ny = self.path[0][1]
         print(F"MOVE: {self.id} {x},{y} => {nx},{ny}")
         self.path = self.path[1:]
+        self.x = nx
+        self.y = ny
         return nx,ny
 
 board = []
-mobs = []
 
 #manhattan distance
 def dist(x,y,x2,y2):
@@ -82,15 +83,33 @@ def get_path(board, x, y, ex, ey, visited):
 
     return None
 
+def get_free_attack_spots(board, w, x, y):
+    spots = []
+    offsets = [ (0,-1), (-1, 0), (1, 0), (0, 1)]
+    for o in offsets:
+        nx = x + o[0]
+        ny = y + o[1]
+        if (board[nx+ny*w] == '.'):
+            spots.append((nx,ny))
+
+    return spots
+
 def find_path_to_enemy(board, w, mob, mobs):
     enemies = []
     for m in mobs:
-        if m.id == mob.id:
+        if m.id == mob.id or not m.alive:
             continue
         if mob.type != m.type:
             enemies.append(m)
 
-    candidates = [(dist(mob.x, mob.y, enemy.x, enemy.y), enemy) for enemy in enemies]
+    free_enemy_spots = []
+    for e in enemies:
+        free = get_free_attack_spots(board, w, e.x, e.y)
+        if len(free) > 0:
+            for spot in free:
+                free_enemy_spots.append((spot[0],spot[1],e))
+
+    candidates = [(dist(mob.x, mob.y, targets[0], targets[1]), targets[2]) for targets in free_enemy_spots]
     if len(candidates) == 0:
         return None
 
@@ -106,6 +125,7 @@ def find_path_to_enemy(board, w, mob, mobs):
 
 def get_mob_to_attack(board, w, mob, mobs):
     offsets = [ (0,-1), (-1, 0), (1, 0), (0, 1)]
+    targets = []
     for offset in offsets:
         test_x = mob.x + offset[0]    
         test_y = mob.y + offset[1]
@@ -113,27 +133,30 @@ def get_mob_to_attack(board, w, mob, mobs):
             # find mob with that x/y
             for m in mobs:
                 if (m.x == test_x and m.y == test_y):
-                    return m
+                    targets.append(m)
 
-    return None
+    if (len(targets) == 0):
+        return None
+    
+    min_hp = 300
+    min_i = 0
+    for x in range(len(targets)):
+        if targets[x].hp < min_hp:
+            min_hp = targets[x].hp
+            min_i = x
+    return targets[min_i]
 
 def print_board(board, w, h):
     for y in range(0,h):
         for x in range(0,w):
             print(board[x+y*w], end="")
 
-def get_mobs(board, w, h):
-    mobs = []
-    for y in range(0,h):
-        for x in range(0,w):
-            ch = board[x+y*w] 
-            if ch == 'E':
-                mobs.append(Mob(id,x,y,ELF))
-            elif ch == 'G':
-                mobs.append(Mob(id,x,y,GOBLIN))
+def get_mobs(all_mobs):
+    mobs = all_mobs
+    mobs.sort(key=lambda m: m.y)
     return mobs
     
-with open("test.txt", "rt") as file:
+with open("input.txt", "rt") as file:
     data = file.readlines()
     x = 0
     y = 0
@@ -141,16 +164,15 @@ with open("test.txt", "rt") as file:
     h = len(data)
     print (f"Board is {w}x{h}")
     id = 1
+    mobs = []
     for line in data:
         x = 0
         for ch in line:
             if ch == 'E':
-                print(f"Found Elf @ {x} {y}")
                 mobs.append(Mob(id,x,y,ELF))
                 id += 1
             elif ch == 'G':
-                print(f"Found Goblin @ {x} {y}")
-                mobs.append(Mob(id+200,x,y,GOBLIN))
+                mobs.append(Mob(200+id,x,y,GOBLIN))
                 id += 1
             board.append(ch)
             x += 1            
@@ -158,16 +180,18 @@ with open("test.txt", "rt") as file:
 
     turn = 1
 
-    print(f"-------------------- Turn {1} --------------------")
+    print(f"-------------------- Start --------------------")
     print_board (board, w, len(data))
     
     while (True):
-        # sort?
+        mobs = get_mobs(mobs)
         for mob in mobs:    
+            if not mob.alive:
+                continue
             mob_in_attacking_range = get_mob_to_attack(board, w, mob, mobs)
-            if (mob_in_attacking_range):
-                print ("attack->")
-                mob.attack(mob_in_attacking_range)
+            if (mob_in_attacking_range and mob_in_attacking_range.alive):
+                if not mob.attack(mob_in_attacking_range):
+                    board[mob_in_attacking_range.x + mob_in_attacking_range.y * w] ='.'
             else:
                 # move towards
                 find_path = find_path_to_enemy(board, w, mob, mobs)
@@ -177,6 +201,14 @@ with open("test.txt", "rt") as file:
                     nx, ny = mob.move()
                     board[nx + ny * w] = mob.get_marker()
 
+                # see if we can attack after ther move
+                mob_in_attacking_range = get_mob_to_attack(board, w, mob, mobs)
+                if (mob_in_attacking_range and mob_in_attacking_range.alive):
+                    if not mob.attack(mob_in_attacking_range):
+                        board[mob_in_attacking_range.x + mob_in_attacking_range.y * w] ='.'
+
+
+        print(f"-------------------- Turn {turn} --------------------")
         for mob in mobs:
             print(f"{mob.id} {mob.type} {mob.x},{mob.y} {mob.hp}")
 
@@ -189,6 +221,7 @@ with open("test.txt", "rt") as file:
                 elves_alive += 1 if m.type == ELF else 0
                 hp_sum += m.hp
 
+        print (f"GAME OVER: {elves_alive} {goblins_alive} {turn} {hp_sum} {turn * hp_sum}")
         if (goblins_alive == 0 or elves_alive == 0):
             print (f"GAME OVER: {elves_alive} {goblins_alive} {turn} {hp_sum} {turn * hp_sum}")
             exit(1)
@@ -196,4 +229,4 @@ with open("test.txt", "rt") as file:
         turn += 1
 
         print_board(board, w, h)
-        r = input()
+        #r = input()
