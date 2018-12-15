@@ -3,10 +3,10 @@ import collections
 (ELF, GOBLIN) = range(2)
 
 class Mob:
-    def __init__(self, id, x, y, type):
+    def __init__(self, id, x, y, type, attack_power):
         self.id = id
         self.hp = 200
-        self.damage_dealt = 3
+        self.damage_dealt = attack_power
         self.alive = True
         self.type = type
         self.x = x
@@ -53,11 +53,7 @@ class Mob:
         return nx, ny
 
 
-board = []
-
 # manhattan distance
-
-
 def dist(x, y, x2, y2):
     return abs(x-x2) + abs(y-y2)
 
@@ -250,7 +246,7 @@ def collect(board, w, h, sx, sy, ex, ey):
     offsets = [(0, -1), (-1, 0), (1, 0), (0, 1)]
 
     possibles = collections.defaultdict(list)
-   
+
     closed = {}
     Q = collections.deque()
     Q.append((ex,ey,0))    
@@ -389,83 +385,95 @@ def get_mobs(all_mobs):
     mobs.sort(key=lambda m: m.y*w*w+m.x)
     return mobs
 
+elf_attack_power = 4
+while(True):
+    buff_them = False
 
-with open("input.txt", "rt") as file:
-    data = file.readlines()
-    x = 0
-    y = 0
-    w = len(data[0])
-    h = len(data)
-    print(f"Board is {w}x{h}")
-    id = 0
-    mobs = []
-    for line in data:
+    board = []
+    with open("input.txt", "rt") as file:
+        data = file.readlines()
         x = 0
-        for ch in line:
-            if ch == 'E':
-                mobs.append(Mob(id, x, y, ELF))
-                id += 1
-            elif ch == 'G':
-                mobs.append(Mob(200+id, x, y, GOBLIN))
-                id += 1
-            board.append(ch)
-            x += 1
-        y += 1
+        y = 0
+        w = len(data[0])
+        h = len(data)
+        print(f"Board is {w}x{h}")
+        id = 0
+        mobs = []
+        for line in data:
+            x = 0
+            for ch in line:
+                if ch == 'E':
+                    mobs.append(Mob(id, x, y, ELF, elf_attack_power))
+                    id += 1
+                elif ch == 'G':
+                    mobs.append(Mob(200+id, x, y, GOBLIN, 3))
+                    id += 1
+                board.append(ch)
+                x += 1
+            y += 1
 
-    turn = 1
+        turn = 1
 
-    print(f"-------------------- Start --------------------")
-    print_board(board, w, len(data))
+        print(f"-------------------- Start --------------------")
+        print_board(board, w, len(data))
 
-    while (True):
-        print(f"-------------------- Turn {turn} --------------------")
-        mobs.sort(key=lambda m: (m.y, m.x))
-        for mob in mobs:
-            if not mob.alive:
-                print (F"DEAD: {mob.id}")
-                continue
-            mob_in_attacking_range = get_mob_to_attack(board, w, mob, mobs)
-            if (mob_in_attacking_range and mob_in_attacking_range.alive):
-                if not mob.attack(mob_in_attacking_range):
-                    board[mob_in_attacking_range.x +
-                          mob_in_attacking_range.y * w] = '.'
-            else:
-                # move towards
-                find_path = find_path_to_enemy(board, w, mob, mobs)
-                if (find_path):
-                    mob.set_path(find_path)
-                    board[mob.x + mob.y * w] = '.'
-                    nx, ny = mob.move()
-                    board[nx + ny * w] = mob.get_marker()
-                    
-                    # see if we can attack after ther move
-                    mob_in_attacking_range = get_mob_to_attack(board, w, mob, mobs)
-                    if (mob_in_attacking_range and mob_in_attacking_range.alive):
-                        if not mob.attack(mob_in_attacking_range):
-                            board[mob_in_attacking_range.x +
-                                mob_in_attacking_range.y * w] = '.'
+        
+        while (not buff_them):
+            print(f"-------------------- Turn {turn} --------------------")
+            mobs.sort(key=lambda m: (m.y, m.x))
+            for mob in mobs:
+                if not mob.alive:
+                    print (F"DEAD: {mob.id}")
+                    continue
+                mob_in_attacking_range = get_mob_to_attack(board, w, mob, mobs)
+                if (mob_in_attacking_range and mob_in_attacking_range.alive):
+                    if not mob.attack(mob_in_attacking_range):
+                        board[mob_in_attacking_range.x +
+                            mob_in_attacking_range.y * w] = '.'
                 else:
-                    print(f"IDLE: {mob.id}")
-        for mob in mobs:
-            print(f"{mob.id} {mob.type} {mob.x},{mob.y} {mob.hp}")
+                    # move towards
+                    find_path = find_path_to_enemy(board, w, mob, mobs)
+                    if (find_path):
+                        mob.set_path(find_path)
+                        board[mob.x + mob.y * w] = '.'
+                        nx, ny = mob.move()
+                        board[nx + ny * w] = mob.get_marker()
+                        
+                        # see if we can attack after ther move
+                        mob_in_attacking_range = get_mob_to_attack(board, w, mob, mobs)
+                        if (mob_in_attacking_range and mob_in_attacking_range.alive):
+                            if not mob.attack(mob_in_attacking_range):
+                                board[mob_in_attacking_range.x +
+                                    mob_in_attacking_range.y * w] = '.'
+                    else:
+                        print(f"IDLE: {mob.id}")
+            for mob in mobs:
+                print(f"{mob.id} {mob.type} {mob.x},{mob.y} {mob.hp}")
+            
+            goblins_alive = 0
+            elves_alive = 0
+            hp_sum = 0
+            for m in mobs:
+                if m.alive:
+                    goblins_alive += 1 if m.type == GOBLIN else 0
+                    elves_alive += 1 if m.type == ELF else 0
+                    hp_sum += m.hp
+                else:
+                    if m.type == ELF:
+                        buff_them = True
 
-        goblins_alive = 0
-        elves_alive = 0
-        hp_sum = 0
-        for m in mobs:
-            if m.alive:
-                goblins_alive += 1 if m.type == GOBLIN else 0
-                elves_alive += 1 if m.type == ELF else 0
-                hp_sum += m.hp
-
-        print_board(board, w, h)
-        print(
-             f"GAME OVER: {elves_alive} {goblins_alive} {turn} {hp_sum} {turn * hp_sum}")
-        if (goblins_alive == 0 or elves_alive == 0):
+            print_board(board, w, h)
             print(
-                f"GAME OVER: {elves_alive} {goblins_alive} {turn-1} {hp_sum} {(turn-1) * hp_sum}")
-            exit(1)
+                f"GAME OVER: {elves_alive} {goblins_alive} {turn} {hp_sum} {turn * hp_sum}")
+            if (goblins_alive == 0 or elves_alive == 0):
+                print(
+                    f"GAME OVER: {elves_alive} {goblins_alive} {turn-1} {hp_sum} {(turn-1) * hp_sum}")
+                for x in mobs:
+                    print (f"{x.type} {x.damage_dealt}")
+                exit(1)
 
-        turn += 1
-       #r = input()
+            turn += 1
+        #r = input()
+
+    elf_attack_power += 1
 
