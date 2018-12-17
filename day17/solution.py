@@ -132,6 +132,31 @@ with open("input.txt", "rt") as file:
             can_drop = board[x+(y+1)*w] == '.'
         return x - 1, y, (can_drop or board[x+y*w] == '|')
 
+    def remove_tops(board, w, h):
+        for y in range(h):
+            # scan forwards looking for |~
+            x = 0            
+            while (x < w):
+                if board[x+y*w] == '|' and board[x+1+y*w] == '~':
+                    x += 1
+                    while (board[x+y*w] == '~'):
+                        board[x+y*w] = '|'
+                        x += 1
+                else:
+                    x += 1
+
+            # kinda hacky, but scan backweards  looking for ~|
+            x = w - 1
+            while (x >= 1):
+                if board[x+y*w] == '|' and board[x-1+y*w] == '~':
+                    x -= 1
+                    while (board[x+y*w] == '~'):
+                        board[x+y*w] = '|'
+                        x -= 1
+                else:
+                    x -= 1
+
+
     # start
     x = 500-min_x
     y = 1
@@ -143,7 +168,7 @@ with open("input.txt", "rt") as file:
     while can_go_down or spouts:
         if not spouts:
             break
-            
+
         x,y = spouts.pop()
 
         if (x,y) in processed_spouts:
@@ -179,23 +204,27 @@ with open("input.txt", "rt") as file:
         #     print(spouts)
         #     exit(-1)
 
-        if (iteration % 100 == 0):
-            render_board(board,w,h,iteration)
-            sum = 0
-            for y in range(h):
-                for x in range(w):
-                    sum += 1 if board[x + y * w] in "~|+" and y + min_y <= max_y else 0
+        render_board(board,w,h,iteration)
+        # if (iteration % 100 == 0):
+        #     render_board(board,w,h,iteration)
+        #     sum = 0
+        #     for y in range(h):
+        #         for x in range(w):
+        #             sum += 1 if board[x + y * w] in "~|+" and y + min_y <= max_y else 0
 
-            print(sum, spouts)
+        #     print(sum, spouts)
         iteration += 1   
 
+    remove_tops(board,w, h)
     render_board(board,w,h,"final")
     print (spouts)
     render_board(board, w,h)
     print_board(board, w, h)
     sum = 0
+    dry_well_sum = 0
     for y in range(h):
         for x in range(w):
             sum += 1 if board[x + y * w] in "~|+" and y + min_y <= max_y else 0
+            dry_well_sum += 1 if board[x + y * w] == '~' else 0
 
-    print(sum)
+    print(sum, dry_well_sum)
