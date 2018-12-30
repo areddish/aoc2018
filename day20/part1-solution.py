@@ -77,6 +77,36 @@ def explore(board, loc):
 
     return max_size
 
+def explore2(board, loc):
+    dist = [0] * len(board)
+
+    size = 0
+    start = [(loc[0], loc[1], size)]
+    visited = {}
+    max_size = 0
+    while len(start) > 0:
+        current = start.pop()
+
+        if (current[0], current[1]) in visited:
+            #max_size = max(max_size, current[2])
+            continue
+
+        # mark it seen
+        visited[(current[0], current[1])] = True
+        dist[current[0] + current[1] * 1000] = current[2]
+
+        # try each door
+        DOOR_OFFSETS = [(1, 0), (-1, 0), (0, -1), (0, 1)]
+        for x in DOOR_OFFSETS:
+            nx = current[0] + x[0]
+            ny = current[1] + x[1]
+            if (board[nx + ny * 1000] in "-|"):
+                start.append((nx + x[0], ny + x[1], current[2] + 1))
+                #assert board[nx+x[0]+(ny+x[1])*1000] == '.' or board[nx+x[0]+(ny+x[1])*1000] == 'X'
+                #board[nx+x[0]+(ny+x[1])*1000] = current[2]+1
+                max_size = max(max_size, current[2] + 1)
+
+    return sum([1 if dist[x] >= 1000 else 0 for x in range(1000*1000)])
 
 def printb(board, w, h):
     for y in range(500 - h, 500 + h):
@@ -125,4 +155,4 @@ if __name__ == "__main__":
             printb(board, 20, 20)
             board = fill_walls(board)
 
-            print(test[0], explore(board, start) - 1, test[1])
+            print(test[0], explore(board, start) - 1, test[1], explore2(board, start))
